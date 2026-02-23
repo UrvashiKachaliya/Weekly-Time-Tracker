@@ -1,0 +1,1 @@
+export const viewProduct='/api/products/list'
