@@ -14,13 +14,16 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 export default function WeeklyTimeTracker() {
-  const STANDARD_FULL_DAY_MINUTES = (42 * 60) / 5;
+  // Constants (most common company policy: full day leave = 8:30)
+  const WEEKLY_TARGET_MINUTES = 42 * 60; // 2520 minutes
+  const FULL_DAY_MINUTES = 8 * 60 + 30; // 510 min
+  const HALF_DAY_MINUTES = 4 * 60 + 30; // 270 min
+  const PARTIAL_DAY_WORKED_MINUTES = 6 * 60 + 30; // 390 min (worked)
 
   const [weekData, setWeekData] = useState([
     { day: "Mon", time: "", leave: "none" },
@@ -54,7 +57,7 @@ export default function WeeklyTimeTracker() {
     updated[index].leave = value;
 
     if (value === "full") {
-      updated[index].time = "08:30";
+      updated[index].time = "08:30"; // displayed but not counted as worked
     } else if (value === "half") {
       updated[index].time = "04:30";
     } else if (value === "partial") {
@@ -71,26 +74,22 @@ export default function WeeklyTimeTracker() {
   const partialCount = weekData.filter((d) => d.leave === "partial").length;
 
   const deductedMinutes =
-    fullCount * STANDARD_FULL_DAY_MINUTES +
-    halfCount * (STANDARD_FULL_DAY_MINUTES / 2) +
-    partialCount * (STANDARD_FULL_DAY_MINUTES - 6.5 * 60);
+    fullCount * FULL_DAY_MINUTES +
+    halfCount * HALF_DAY_MINUTES +
+    partialCount * (FULL_DAY_MINUTES - PARTIAL_DAY_WORKED_MINUTES);
 
-    // console.log("full count>>>>>>>>>>>>>>",fullCount*STANDARD_FULL_DAY_MINUTES)
-    // console.log("half count>>>>>>>>>>>>>>>",halfCount*STANDARD_FULL_DAY_MINUTES / 2)
-    // console.log("partial day-----------------",partialCount * (STANDARD_FULL_DAY_MINUTES - 6.5 * 60))
+  // Required minutes after leave deductions
+  const requiredMinutes = WEEKLY_TARGET_MINUTES - deductedMinutes;
 
-
-  const requiredMinutes = 5 * STANDARD_FULL_DAY_MINUTES - deductedMinutes;
-
+  // Total actually worked minutes
   const totalMinutes = weekData.reduce((sum, day) => {
     if (day.leave === "full") return sum + 0;
-    if (day.leave === "half") return sum + 4.5 * 60;
-    if (day.leave === "partial") return sum + 6.5 * 60;
+    if (day.leave === "half") return sum + HALF_DAY_MINUTES;
+    if (day.leave === "partial") return sum + PARTIAL_DAY_WORKED_MINUTES;
     return sum + convertToMinutes(day.time);
   }, 0);
 
   const remainingMinutes = Math.max(0, requiredMinutes - totalMinutes);
-  
   const progress =
     requiredMinutes > 0 ? (totalMinutes / requiredMinutes) * 100 : 100;
 
@@ -124,11 +123,23 @@ export default function WeeklyTimeTracker() {
                   <Input
                     type="text"
                     value={weekData[index].time}
-                    onChange={(e) => handleTimeChange(index, e.target.value)}
-                    placeholder="HH:MM"
+                    placeholder="08:30"
                     className="w-[110px] text-center"
                     disabled={weekData[index].leave !== "none"}
-                    
+                    onChange={(e) => {
+                      let val = e.target.value;
+
+                      // Ensure it starts with "08:"
+                      if (!val.startsWith("08:")) val = "08:";
+
+                      // Only allow 2 digits for minutes
+                      const minutesPart = val
+                        .slice(3)
+                        .replace(/\D/g, "")
+                        .slice(0, 2);
+
+                      handleTimeChange(index, `08:${minutesPart}`);
+                    }}
                   />
                 </div>
 
