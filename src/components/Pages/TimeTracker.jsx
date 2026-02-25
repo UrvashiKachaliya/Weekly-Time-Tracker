@@ -54,7 +54,7 @@ export default function WeeklyTimeTracker() {
     updated[index].leave = value;
 
     if (value === "full") {
-      updated[index].time = "00:00";
+      updated[index].time = "08:30";
     } else if (value === "half") {
       updated[index].time = "04:30";
     } else if (value === "partial") {
